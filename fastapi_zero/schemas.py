@@ -1,22 +1,27 @@
+from typing import List
+
 from pydantic import BaseModel, EmailStr
 
 
-# Contrato de como vai ser retornado
 class Message(BaseModel):
     message: str
 
 
-class UserPublic(BaseModel):
-    Username: str
+class UserSchema(BaseModel):
+    username: str
     email: EmailStr
-
-
-class UserSchema(UserPublic):
     password: str
+
+
+class UserPublic(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
 
 
 class UserDB(UserSchema):
     id: int
 
-class ListUsers(BaseModel):
-    return users: List[UserPublic]
+
+class UserList(BaseModel):
+    users: List[UserPublic]

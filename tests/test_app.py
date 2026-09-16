@@ -1,5 +1,9 @@
 from http import HTTPStatus
 
+from fastapi.testclient import TestClient
+
+from fastapi_zero.app import app
+
 
 def test_root_deve_retornar_ola_mundo():
     """
@@ -26,7 +30,7 @@ def test_html():
     response = client.get("/html")
 
     assert response.status_code == HTTPStatus.OK
-    assert '<"h1"> Olá Mundo <"/h1">' in response.text
+    assert "<h1> Olá Mundo </h1>" in response.text
 
 
 def test_create_user():
@@ -50,18 +54,19 @@ def test_create_user():
 
 
 def test_read_users(client):
-    response = cliente.get("/users")
+    response = client.get("/users")
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json == {
+    assert response.json() == {
         "users": [
             {
-        "id": 1,
-        "username": "Alice",
-        "email": "alice@example.com",
-    }
+                "id": 1,
+                "username": "Alice",
+                "email": "alice@example.com",
+            }
         ]
     }
+
 
 def test_update_user(client):
     response = client.put(
@@ -69,18 +74,23 @@ def test_update_user(client):
         json={
             "username": "bob",
             "email": "bob@example.com",
-            "password": "bob123"
-        }
+            "password": "bob123",
+        },
     )
+
     assert response.status_code == HTTPStatus.OK
-    assert response.json == {
+    assert response.json() == {
         "username": "bob",
         "email": "bob@example.com",
-        "id": 1
+        "id": 1,
     }
+
 
 def test_delete_user(client):
     response = client.delete("/users/1")
 
     assert response.status_code == HTTPStatus.NO_CONTENT
-    assert response.json() == {}
+
+    response = client.get("/users")
+
+    assert response.json() == {"users": []}
