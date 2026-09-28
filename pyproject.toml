@@ -14,7 +14,9 @@ dependencies = [
     "alembic (>=1.20.0,<2.0.0)",
     "freezegun (>=1.5.5,<2.0.0)",
     "pwdlib[argon2] (>=0.3.1,<0.4.0)",
-    "pyjwt (>=2.14.0,<3.0.0)"
+    "pyjwt (>=2.14.0,<3.0.0)",
+    "aiosqlite (>=0.22.1,<0.23.0)",
+    "pytest-asyncio (>=1.4.0,<2.0.0)"
 ]
 
 
@@ -41,6 +43,7 @@ select = ['I', 'F', 'E', 'W', 'PL', 'PT', 'FAST']
 [tool.pytest]
 pythonpath = ['.']
 addopts = ['-p', 'no:warnings', '--cov=fastapi_zero', '--cov-context=test']
+asyncio_default_fixture_loop_scope = 'function'
 
 [tool.taskipy.tasks]
 lint = 'ruff check'
@@ -50,3 +53,7 @@ run = 'fastapi dev fastapi_zero/app.py'
 pre_test = 'task lint'
 test = 'pytest -s -x --cov=fastapi_zero -vv'
 post_test = 'coverage html'
+
+[tool.coverage.run]
+core = "ctrace"
+concurrency = ["thread", "greenlet"]

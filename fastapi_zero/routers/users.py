@@ -4,8 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_zero.database import get_session
 from fastapi_zero.models import User
 from fastapi_zero.schemas import (
@@ -18,16 +17,16 @@ from fastapi_zero.security import get_current_user, get_password_hash
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-Session = Annotated[Session, Depends(get_session)]
+Session = Annotated[AsyncSession, Depends(get_session)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.post("/", response_model=UserPublic)
-def create_user(
+async def create_user(
     user: UserSchema,
-    session: Session
+    session: AsyncSession
 ):
-    db_user = session.scalar(
+    db_user = await session.scalar(
         select(User).where(
             or_(
                 User.username == user.username,
@@ -55,8 +54,8 @@ def create_user(
     db_user = User(**user_data)
 
     session.add(db_user)
-    session.commit()
-    session.refresh(db_user)
+    await session.commit()
+    await session.refresh(db_user)
 
     return db_user
 
@@ -79,10 +78,10 @@ def read_users(
     status_code=HTTPStatus.OK,
     response_model=UserPublic,
 )
-def update_user(
+async def update_user(
     user_id: int,
     user: UserSchema,
-    session: Session,
+    session: AsyncSession,
     current_user: CurrentUser,
 ):
     if current_user.id != user_id:
@@ -95,10 +94,10 @@ def update_user(
         current_user.username = user.username
         current_user.password = user.password
 
-        session.commit()
-        session.refresh(current_user)
+        await session.commit()
+        await session.refresh(current_user)
     except IntegrityError:
-        session.rollback()
+        await session.rollback()
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
             detail="Email or username already exists",
