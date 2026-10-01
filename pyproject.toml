@@ -16,7 +16,8 @@ dependencies = [
     "pwdlib[argon2] (>=0.3.1,<0.4.0)",
     "pyjwt (>=2.14.0,<3.0.0)",
     "aiosqlite (>=0.22.1,<0.23.0)",
-    "pytest-asyncio (>=1.4.0,<2.0.0)"
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "factory-boy (>=3.3.3,<4.0.0)"
 ]
 
 

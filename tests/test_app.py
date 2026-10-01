@@ -1,4 +1,4 @@
-def test_root_deve_retornar_ola_mundo():
+def test_root_deve_retornar_ola_mundo(client):
     """
     Este teste segue o padrão AAA (Arrange, Act, Assert):
 
@@ -10,6 +10,8 @@ def test_root_deve_retornar_ola_mundo():
     # Arrange: prepara o cliente de teste e a aplicação que será testada.
 
     # Act: realiza uma requisição GET para a rota raiz da aplicação.
+
+    response = client.get("/")
 
     # Assert: verifica se a resposta contém exatamente o JSON esperado.
     assert response.json() == {"message": "Olá mundo"}

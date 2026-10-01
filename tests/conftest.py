@@ -1,18 +1,18 @@
 from contextlib import contextmanager
 from datetime import datetime
 from unittest.mock import patch
-from sqlalchemy.ext.asyncio import (create_async_engine, 
-                                    AsyncSession
-    )
-import pytest_asyncio
+import factory
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
-from ..fastapi_zero.settings import Settings
+
 from fastapi_zero.app import app
 from fastapi_zero.database import get_session
 from fastapi_zero.models import User, table_registry
 from fastapi_zero.security import get_password_hash
+from fastapi_zero.settings import Settings
 
 
 @pytest.fixture
@@ -36,11 +36,11 @@ async def session():
         poolclass=StaticPool,
     )
 
-    async with engine.begin() as conn: 
+    async with engine.begin() as conn:
         await conn.run_sync(table_registry.metadata.create_all)
 
     async with AsyncSession(engine, expire_on_commit=False) as session:
-            yield session
+        yield session
 
     async with engine.begin() as conn:
         await conn.run_sync(table_registry.metadata.drop_all)
@@ -62,10 +62,7 @@ def mock_db_time():
 @pytest_asyncio.fixture
 async def user(session: AsyncSession):
     password = "testtest"
-    user = User(
-        username="test",
-        email="test@gmail.com",
-        password=get_password_hash(password),
+    user = UserFactory( password=get_password_hash(password)
     )
     session.add(user)
     await session.commit()
@@ -75,13 +72,26 @@ async def user(session: AsyncSession):
 
     return user
 
+@pytest_asyncio.fixture
+async def other_user(session: AsyncSession):
+    password = "testtest"
+    user = UserFactory( password=get_password_hash(password)
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    user.clean_password = password
+
+    return user
 
 @pytest.fixture
 def token(client, user):
     response = client.post(
-        "auth/token",
+        "/auth/",
         data={"username": user.email, "password": user.clean_password},
     )
+    response.raise_for_status()
     return response.json()["access_token"]
 
 
@@ -91,5 +101,16 @@ def settings():
         DATABASE_URL="sqlite:///:memory:",
         SECRET_KEY="test-secret-key",
         ALGORITHM="HS256",
-        ACCESS_TOKEN_EXPIRE_MINUTES=30
+        ACCESS_TOKEN_EXPIRE_MINUTES=30,
+    )
+
+class UserFactory(factory.Factory):
+    class Meta:
+        model = User
+
+    username = factory.Sequence(lambda n: f'test{n}')
+    email = factory.LazyAttribute(lambda obj: 'f{obj.username}@test.com')
+    password = factory.LazyAttribute(
+        lambda obj: get_password_hash(f'{obj.username}777'
+    )
     )

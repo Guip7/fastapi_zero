@@ -5,14 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from fastapi_zero.database import get_session
 from fastapi_zero.models import User
-from fastapi_zero.schemas import (
-    UserList,
-    UserPublic,
-    UserSchema,
-    FilterPage
-)
+from fastapi_zero.schemas import FilterPage, UserList, UserPublic, UserSchema
 from fastapi_zero.security import get_current_user, get_password_hash
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -22,10 +18,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.post("/", response_model=UserPublic)
-async def create_user(
-    user: UserSchema,
-    session: AsyncSession
-):
+async def create_user(user: UserSchema, session: Session):
     db_user = await session.scalar(
         select(User).where(
             or_(
@@ -65,11 +58,14 @@ async def create_user(
     status_code=HTTPStatus.OK,
     response_model=UserList,
 )
-def read_users(
-    session: Session, 
-    filter_user: Annotated[FilterPage, Query()] ):
+async def read_users(
+    session: Session, filter_user: Annotated[FilterPage, Query()]
+):
 
-    users = session.scalars(select(User).limit(filter_user.limit).offset(filter_user.offset)).all()
+    result = await session.scalars(
+        select(User).limit(filter_user.limit).offset(filter_user.offset)
+    )
+    users = result.all()
     return {"users": users}
 
 
@@ -81,7 +77,7 @@ def read_users(
 async def update_user(
     user_id: int,
     user: UserSchema,
-    session: AsyncSession,
+    session: Session,
     current_user: CurrentUser,
 ):
     if current_user.id != user_id:
@@ -107,10 +103,8 @@ async def update_user(
 
 
 @router.delete("/{user_id}", status_code=HTTPStatus.NO_CONTENT)
-def delete_user(
-    user_id: int,
-    session: Session,
-    current_user: CurrentUser
+async def delete_user(
+    user_id: int, session: Session, current_user: CurrentUser
 ):
 
     if current_user.id != user_id:
@@ -118,5 +112,5 @@ def delete_user(
             status_code=HTTPStatus.FORBIDDEN, detail="Not enough permission"
         )
 
-    session.delete(current_user)
-    session.commit()
+    await session.delete(current_user)
+    await session.commit()

@@ -5,19 +5,23 @@ from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jwt import DecodeError, decode, encode
+from jwt import DecodeError, decode, encode, ExpiredSignatureError
 from pwdlib import PasswordHash
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from .settings import Settings
+
 from fastapi_zero.database import get_session
 from fastapi_zero.models import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+from .settings import Settings
 
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl='auth/token', refreshUrl='auth/refresh'
+)
 
 pwd_context = PasswordHash.recommended()
 settings = Settings()
+
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
@@ -62,13 +66,19 @@ async def get_current_user(
     )
 
     try:
-        payload = decode(token, settings.SECRET_KEY, algorithms=settings.ALGORITHM)
+        payload = decode(
+            token, settings.SECRET_KEY, algorithms=settings.ALGORITHM
+        )
         subject_email = payload.get("sub")
         if not subject_email:
             raise credencial_exception
     except DecodeError:
         raise credencial_exception
-    user = await session.scalar(select(User).where(User.email == subject_email))
+    except ExpiredSignatureError:
+        raise credencial_exception
+    user = await session.scalar(
+        select(User).where(User.email == subject_email)
+    )
 
     if not user:
         raise credencial_exception
