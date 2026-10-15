@@ -1,0 +1,16 @@
+service:
+  fastzero_database:
+    image: postgres
+    enviroments:
+      POSTGRES_USER: app_user
+      POSTGRES_DB: app_db
+      POSTGRES_PASSWORD: app_password
+    ports:
+      - "5432:5432"
+  fastzero_app:
+    image: fastzero_app
+    build: .
+    ports:
+    - "8000:8000"
+    depends_on:
+      - fastzero_database
